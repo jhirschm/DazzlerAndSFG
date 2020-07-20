@@ -5,7 +5,7 @@ file to test the python ssnl agaisnt accepted values from the matlab version
 import unittest
 import numpy as np
 from scipy.io import loadmat
-from ssnl import SSNL
+from ssnl import * #SSNL
 
 testVals = loadmat('testVals.mat',squeeze_me=True)
 ssnlTestObj = SSNL()
@@ -42,17 +42,17 @@ class TestSSNL(unittest.TestCase):
     
     
     def test_fwhm(self):
-        self.assertEqual(ssnlTestObj.fwhm(testVals['fwhm_IN']), \
+        self.assertEqual(fwhm(testVals['fwhm_IN']), \
                           testVals['fwhm_OUT'], \
                           msg='pyssnl fwhm does not match MATLAB')
         
     def test_fft(self):        
-        pyVal = ssnlTestObj.fft(testVals['fft_IN'])
+        pyVal = fft(testVals['fft_IN'])
         self.assertTrue(relError(pyVal,testVals['fft_OUT']) >= 15,
                         msg='pyssnl fft does not match MATLAB')
         
     def test_ifft(self):        
-        pyVal = ssnlTestObj.ifft(testVals['ifft_IN'])
+        pyVal = ifft(testVals['ifft_IN'])
         self.assertTrue(relError(pyVal,testVals['ifft_OUT']) >= 15,
                         msg='pyssnl ifft does not match MATLAB')
         

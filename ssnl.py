@@ -2,6 +2,61 @@ import numpy as np
 import sympy as sp
 from numpy.fft import fftshift, ifftshift
 
+
+def gdd(dt,dt0):
+    '''calculate GDD'''
+    #http://toolbox.lightcon.com/tools/pulsebroadening/
+    sqrt = np.sqrt( (dt/dt0)**2 -1 )
+    gdd  = (dt0**2)/(4*np.log(2)) * sqrt
+    return gdd
+
+def fwhm(lst):
+    '''Calculate the fwhm given list of intensity values
+    
+    lst: 1xN list or numpy array
+    
+    returns a single value as the number of indicies !!NOT SCALED!!'''
+    if np.iscomplexobj(lst):
+        lst  = abs(lst)**2
+    highVals = np.where(lst > np.amax(lst)/2)
+    fwhm     = highVals[0][-1]-highVals[0][0]+1
+    return fwhm
+
+def fft(field):
+    '''fft with shift
+    
+    Shifting values so that initial time is 0.
+    Then perform FFT, then shift 0 back to center.
+    
+    field: 1xN numpy array
+    
+    return a 1xN numpy array'''
+    return fftshift(np.fft.fft(ifftshift(field)))
+
+def ifft(field):
+    '''ifft with shift
+        
+    Shifting values so that initial time is 0.
+    Then perform IFFT, then shift 0 back to center.
+    
+    field: 1xN numpy array
+        
+    return a 1xN numpy array'''
+    return fftshift(np.fft.ifft(ifftshift(field)))
+
+
+def taylor_sf(ps):
+    '''get taylor coefficients needed for fwhm'''
+    taysf = {} # Need to find out where these hard coded #'s come from:
+    #(*positive is positive \chirp*) (*compressor + CVBG*)
+    taysf['12'] = -38.22804*ps**2 + 34.95326696*ps**2 
+    taysf['13'] = (0.41920*ps**3)*tayx3x2ratioscale
+    taysf['14'] = -0.00761*ps**4;
+    taysf['15'] = 0.00019*ps**5; 
+    
+    return taysf
+
+
 class UNITS:
     
     def __init__(self,mScale=0,sScale=0):
@@ -28,7 +83,9 @@ class SSNL:
         self.c    = 299792458 * (u.m/u.s)
         self.eps0 = (8.854187817 * 10**-12) / u.m
         self.w0_2_fwhm = 4 * np.log(2)
-        
+       
+        # Does this belong here? Maybe can go in units class?
+        # Also will this stay hard coded? (1030, 515?)
         lams = np.array([1030*u.nm,1030*u.nm,515*u.nm])
         ks = (2*np.pi)/lams
         omegas = self.c * ks
@@ -52,52 +109,7 @@ class SSNL:
                 ])
             }
         
-        pass 
-        
-    def gdd(self,dt,dt0):
-        '''this prob doesn't need to be part of the class 
-        could go in init or an _unpack function.
-        If dt, and dt0 are not going to be in self,
-        I would pull this out of the class, along w/
-        some of the other helper funcs that do not use self.'''
-        sqrt = np.sqrt( (dt/dt0)**2 -1 )
-        gdd  = (dt0**2)/(4*np.log(2)) * sqrt
-        return gdd
-
-    def fwhm(self,lst):
-        '''Calculate the fwhm given list of intensity values
-        
-        lst: 1xN list or numpy array
-        
-        returns a single value as the number of indicies !!NOT SCALED!!'''
-        if np.iscomplexobj(lst):
-            lst  = abs(lst)**2
-        highVals = np.where(lst > np.amax(lst)/2)
-        fwhm     = highVals[0][-1]-highVals[0][0]+1
-        return fwhm
-    
-    def fft(self,field):
-        '''fft with shift
-        
-        Shifting values so that initial time is 0.
-        Then perform FFT, then shift 0 back to center.
-        
-        field: 1xN numpy array
-        
-        return a 1xN numpy array'''
-        return fftshift(np.fft.fft(ifftshift(field)))
-    
-    def ifft(self,field):
-        '''ifft with shift
-            
-        Shifting values so that initial time is 0.
-        Then perform IFFT, then shift 0 back to center.
-        
-        field: 1xN numpy array
-        
-        return a 1xN numpy array'''
-        return fftshift(np.fft.ifft(ifftshift(field)))
-    
+   
     def intenPeak(self,ePulse, mRad, tau):
         '''Calculate peak intensity, assumes Gausian
         
@@ -324,7 +336,7 @@ class SSNL:
                            )
                     )
             
-            self.eField['freq'][ii+1][0,:] = self.fft(self.eField['time'][ii+1][0,:])
+            self.eField['freq'][ii+1][0,:] = fft(self.eField['time'][ii+1][0,:])
                         
             self.eField['freq'][ii+1][0,:] *= (
                 np.exp( 1j * self.eqns['phase'](self.props['specPhases'][ii,0],
@@ -337,7 +349,7 @@ class SSNL:
                        )
                 )
             
-            self.eField['time'][ii+1][0,:] = self.ifft(self.eField['freq'][ii+1][0,:])
+            self.eField['time'][ii+1][0,:] = ifft(self.eField['freq'][ii+1][0,:])
             
         return
     
@@ -415,7 +427,7 @@ class SSNL:
         for iZ in range(1,self.grids['nZ']+1):
             
             for iF in range (nFields):
-                self.eField['time'][iF+1][iZ,:] = self.ifft( 
+                self.eField['time'][iF+1][iZ,:] = ifft( 
                     self.eField['freq'][iF+1][iZ-1,:] *
                     np.exp(1j * self.lists['k'][iF,:] * dzStep(self,iZ))
                     )
@@ -425,7 +437,7 @@ class SSNL:
                 self.RKstep(iZ)
                 
             for iF in range(nFields):
-                self.eField['freq'][iF+1][iZ,:] = self.fft(
+                self.eField['freq'][iF+1][iZ,:] = fft(
                     self.eField['time'][iF+1][iZ,:]
                     )
             
