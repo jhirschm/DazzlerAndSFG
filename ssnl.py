@@ -83,7 +83,6 @@ class SSNL:
         self.c          = 299792458 * (u.m/u.s)
         self.eps0       = (8.854187817 * 10**-12) / u.m
         self.w0_2_fwhm  = 4 * np.log(2)
-        
         self.lams       = None
         self.ks         = None
         self.omegas     = None
@@ -106,9 +105,9 @@ class SSNL:
         330  fs = dt0, in gdd formula
         
         results in squarish pulse? '''
-        u = UNITS() 
-        tay12 = gdd(newfwhm, 330)
-        tay13 = (tay12/7.8)*sf
+        u     = UNITS() 
+        tay12 = 3.27 #gdd(newfwhm, 330)
+        tay13 = 0.42 #(tay12/7.8)*sf
        
         self.lams     = np.array([1030*u.nm,1030*u.nm,515*u.nm])
         self.ks       = (2*np.pi)/self.lams
@@ -187,7 +186,7 @@ class SSNL:
         returns nothing but sets internal attributes
         '''
         if crysName is None: # Future support for other crystals
-            crysName = self.props['crys']
+            crysName = self.crys
             
         u = UNITS()
         (l, theta, w, lCtr, field1, field2, field3, dOmega, kk2, kk3, kk4, kk5)\
@@ -211,11 +210,11 @@ class SSNL:
         
         k1 = (w/self.c)*nO_SYMPY.subs(l,(2*np.pi*self.c)/w)
         dk1 = sp.diff(k1,w)
-        self.eqns['dk'] = float(dk1.subs(w,self.props['omegas'][0]).evalf())
+        self.eqns['dk'] = float(dk1.subs(w,self.omegas[0]).evalf())
         
-        nonLinCoef = (((dNL * 1j) * 2 * self.props['ks'][0])/self.eqns['index'][0](self.props['lams'][0]),
-                      ((dNL * 1j) * 2 * self.props['ks'][1])/self.eqns['index'][1](self.props['lams'][1]),
-                      ((dNL * 1j) * 2 * self.props['ks'][2])/self.eqns['index'][2](self.props['lams'][2],self.props['theta']),
+        nonLinCoef = (((dNL * 1j) * 2 * self.ks[0])/self.eqns['index'][0](self.lams[0]),
+                      ((dNL * 1j) * 2 * self.ks[1])/self.eqns['index'][1](self.lams[1]),
+                      ((dNL * 1j) * 2 * self.ks[2])/self.eqns['index'][2](self.lams[2],self.theta),
                       )
         
         self.eqns['nonLin'] = np.array(((lambda field2, field3: nonLinCoef[0] * np.conj(field2) * field3),
@@ -239,7 +238,7 @@ class SSNL:
         The .grids attribute holds the info for the discrete step spacing of
         quantities such as time and space. The .lists property holds all the
         points used in computation based on the spacing from .grids and
-        values from .props
+        values from self.properties
         
         nPts: (OPTIONAL) a single integer. Number of points in lists. 
                 You will regret everything if it is not apower of 2.
@@ -256,7 +255,7 @@ class SSNL:
         returns nothing but sets internal attributes
         '''
         if dt is None:
-            dt = self.props['taus'][0]/10
+            dt = self.taus[0]/10
         
         gridKeys = ['nPts','dt','dz','nZ','dw']
         listKeys = ['t','lambda','omega','dOmega','k']
@@ -264,12 +263,12 @@ class SSNL:
         self.grids = {key:None for key in gridKeys}
         self.lists = {key:None for key in listKeys}
         
-        nFields = len(self.props['lams'])
+        nFields = len(self.lams)
         
         self.grids['nPts'] = nPts
         self.grids['dt'] = dt
         self.grids['nZ'] = nZ
-        self.grids['dz'] = self.props['len'] / (self.grids['nZ'] - 1)
+        self.grids['dz'] = self.len / (self.grids['nZ'] - 1)
         self.grids['dw'] = (2*np.pi) / (self.grids['nPts'] * self.grids['dt'])
         
         self.lists['t'] = self.grids['dt'] * (np.arange(-self.grids['nPts']/2,self.grids['nPts']/2)+1)
@@ -280,7 +279,7 @@ class SSNL:
         
         for ii in range(nFields):
             
-            self.lists['omega'][ii,:] = self.lists['dOmega'] + self.props['omegas'][ii]
+            self.lists['omega'][ii,:] = self.lists['dOmega'] + self.omegas[ii]
             self.lists['lambda'][ii,:] = np.divide(2*np.pi*self.c,self.lists['omega'][ii,:])
             
             if ii != nFields-1:
@@ -293,7 +292,7 @@ class SSNL:
             elif ii == nFields-1:
                 self.lists['k'][ii,:] = (
                     np.divide(2*np.pi,self.lists['lambda'][ii,:]) *
-                     self.eqns['index'][ii](self.lists['lambda'][ii,:],self.props['theta']) - 
+                     self.eqns['index'][ii](self.lists['lambda'][ii,:],self.theta) - 
                       (self.lists['dOmega']*self.eqns['dk']
                        )
                      )
@@ -309,7 +308,7 @@ class SSNL:
         returns nothing but sets internal attributes        
         '''
         
-        nFields = len(self.props['lams'])
+        nFields = len(self.lams)
         
         timeField  = {(ii+1):
                    np.zeros((self.grids['nZ']+1,self.grids['nPts']),dtype=complex) 
@@ -327,40 +326,40 @@ class SSNL:
             if ii != nFields-1:
                 
                 self.eField['time'][ii+1][0,:] = (
-                    self.fieldPeak(self.props['energies'][ii],
-                                   self.props['spotRad'],
-                                   self.props['taus'][ii],
-                                   self.eqns['index'][ii](self.props['lams'][ii])
+                    self.fieldPeak(self.energies[ii],
+                                   self.spotRad,
+                                   self.taus[ii],
+                                   self.eqns['index'][ii](self.lams[ii])
                                    ) *
                     np.exp( -(1/2) * self.w0_2_fwhm *
-                           ( (self.lists['t'] / self.props['taus'][ii])**2)
+                           ( (self.lists['t'] / self.taus[ii])**2)
                            )
                     )
                 
             elif ii == nFields-1:
             
                 self.eField['time'][ii+1][0,:] = (
-                    self.fieldPeak(self.props['energies'][ii],
-                                   self.props['spotRad'],
-                                   self.props['taus'][ii],
+                    self.fieldPeak(self.energies[ii],
+                                   self.spotRad,
+                                   self.taus[ii],
                                    self.eqns['index'][ii](
-                                       self.props['lams'][ii],self.props['theta']
+                                       self.lams[ii],self.theta
                                        )
                                    ) *
                     np.exp( -(1/2) * self.w0_2_fwhm *
-                           ( (self.lists['t'] / self.props['taus'][ii])**2)
+                           ( (self.lists['t'] / self.taus[ii])**2)
                            )
                     )
             
             self.eField['freq'][ii+1][0,:] = fft(self.eField['time'][ii+1][0,:])
                         
             self.eField['freq'][ii+1][0,:] *= (
-                np.exp( 1j * self.eqns['phase'](self.props['specPhases'][ii,0],
-                                                self.props['specPhases'][ii,1],
-                                                self.props['specPhases'][ii,2],
-                                                self.props['specPhases'][ii,3],
+                np.exp( 1j * self.eqns['phase'](self.specPhases[ii,0],
+                                                self.specPhases[ii,1],
+                                                self.specPhases[ii,2],
+                                                self.specPhases[ii,3],
                                                 self.lists['lambda'][ii,:],
-                                                self.props['lams'][ii]
+                                                self.lams[ii]
                                                 )
                        )
                 )
@@ -378,7 +377,7 @@ class SSNL:
         returns nothing but sets internal attributes
         '''
         
-        nFields = len(self.props['lams'])
+        nFields = len(self.lams)
         N = self.grids['nPts']
         
         if nFields == 3:
@@ -438,7 +437,7 @@ class SSNL:
             else:
                 return self.grids['dz']
         
-        nFields = len(self.props['lams'])
+        nFields = len(self.lams)
         
         for iZ in range(1,self.grids['nZ']+1):
             
