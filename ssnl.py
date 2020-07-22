@@ -80,36 +80,52 @@ class SSNL:
     def __init__(self):
         
         u = UNITS()
-        self.c    = 299792458 * (u.m/u.s)
-        self.eps0 = (8.854187817 * 10**-12) / u.m
-        self.w0_2_fwhm = 4 * np.log(2)
+        self.c          = 299792458 * (u.m/u.s)
+        self.eps0       = (8.854187817 * 10**-12) / u.m
+        self.w0_2_fwhm  = 4 * np.log(2)
+        
+        self.lams       = None
+        self.ks         = None
+        self.omegas     = None
+        self.crys       = None
+        self.len        = None
+        self.theta      = None
+        self.mixType    = None
+        self.taus       = None
+        self.energies   = None
+        self.spotRad    = None
+        self.specPhases = None
+
+
+    def set_default(self, newfwhm, sf):
+        '''Set properties to case with:
+        sf      = scale factor btwn tay 12, tay 22
+        newfwhm = pulse length in fs
+        1030 nm = 
+        515  nm = 
+        330  fs = dt0, in gdd formula
+        
+        results in squarish pulse? '''
+        u = UNITS() 
+        tay12 = gdd(newfwhm, 330)
+        tay13 = (tay12/7.8)*sf
        
-        # Does this belong here? Maybe can go in units class?
-        # Also will this stay hard coded? (1030, 515?)
-        lams = np.array([1030*u.nm,1030*u.nm,515*u.nm])
-        ks = (2*np.pi)/lams
-        omegas = self.c * ks
-        
-        # HARD CODED VALUES FOR OUR CASE, CHANGE AFTER BUILD
-        self.props = {
-            'crys':'BBO',
-            'len':2*u.mm,
-            'theta':23.29,
-            'mixType':'SFG',
-            'lams':lams,
-            'ks':ks,
-            'omegas':omegas,
-            'taus':np.array([330*u.fs,330*u.fs,20*u.fs]),
-            'energies':np.array([25*u.uJ,25*u.uJ,0*u.uJ]),
-            'spotRad':400*u.um,
-            'specPhases':np.array([
-                [-3.27*u.ps**2,0.42*u.ps**3,0,0],
-                [3.27*u.ps**2,-0.42*u.ps**3,0,0],
-                [0,0,0,0]
-                ])
-            }
-        
-   
+        self.lams     = np.array([1030*u.nm,1030*u.nm,515*u.nm])
+        self.ks       = (2*np.pi)/self.lams
+        self.omegas   = self.c * self.ks
+        self.crys     = 'BBO'
+        self.len      = 2*u.mm
+        self.theta    = 23.29
+        self.mixType  = 'SFG'
+        self.taus     = np.array([330*u.fs,330*u.fs,20*u.fs])
+        self.energies = np.array([25*u.uJ,25*u.uJ,0*u.uJ])
+        self.spotRad  = 400*u.um
+        self.specPhases = np.array([ 
+                          [-tay12*u.ps**2,tay13*u.ps**3,0,0], 
+                          [tay12*u.ps**2,-0.42*u.ps**3,0,0],
+                          [0,0,0,0]])
+        return    
+                          
     def intenPeak(self,ePulse, mRad, tau):
         '''Calculate peak intensity, assumes Gausian
         
