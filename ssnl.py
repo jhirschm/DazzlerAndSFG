@@ -44,19 +44,6 @@ def ifft(field):
     return a 1xN numpy array'''
     return fftshift(np.fft.ifft(ifftshift(field)))
 
-
-def taylor_sf(ps):
-    '''get taylor coefficients needed for fwhm'''
-    taysf = {} # Need to find out where these hard coded #'s come from:
-    #(*positive is positive \chirp*) (*compressor + CVBG*)
-    taysf['12'] = -38.22804*ps**2 + 34.95326696*ps**2 
-    taysf['13'] = (0.41920*ps**3)*tayx3x2ratioscale
-    taysf['14'] = -0.00761*ps**4;
-    taysf['15'] = 0.00019*ps**5; 
-    
-    return taysf
-
-
 class UNITS:
     
     def __init__(self,mScale=0,sScale=0):
@@ -98,7 +85,7 @@ class SSNL:
 
     def set_default(self, newfwhm, sf):
         '''Set properties to case with:
-        sf      = scale factor btwn tay 12, tay 22
+        sf      = scale factor btwn tay 12, tay 13 
         newfwhm = pulse length in fs
         1030 nm = 
         515  nm = 
