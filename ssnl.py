@@ -86,16 +86,17 @@ class SSNL:
     def set_default(self, newfwhm, sf):
         '''Set properties to case with:
         sf      = scale factor btwn tay 12, tay 13 
-        newfwhm = pulse length in fs
-        1030 nm = 
-        515  nm = 
+        newfwhm = pulse length in ps for green 
+        1030 nm = fundamental wavelength 
+        515  nm = second harmonic
         330  fs = dt0, in gdd formula
         
-        results in squarish pulse? '''
+        results in squarish pulse '''
         u     = UNITS() 
-        tay12 = 3.27 #gdd(newfwhm, 330)
-        tay13 = 0.42 #(tay12/7.8)*sf
-       
+        dt0   = 330 #fs
+        tay12 = gdd(newfwhm, dt0)*10**-6
+        tay13 = (tay12/7.8)*sf
+           
         self.lams     = np.array([1030*u.nm,1030*u.nm,515*u.nm])
         self.ks       = (2*np.pi)/self.lams
         self.omegas   = self.c * self.ks
@@ -108,7 +109,7 @@ class SSNL:
         self.spotRad  = 400*u.um
         self.specPhases = np.array([ 
                           [-tay12*u.ps**2,tay13*u.ps**3,0,0], 
-                          [tay12*u.ps**2,-0.42*u.ps**3,0,0],
+                          [tay12*u.ps**2,-tay13*u.ps**3,0,0],
                           [0,0,0,0]])
         return    
                           
