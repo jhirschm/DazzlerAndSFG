@@ -2,7 +2,7 @@
 __pycache__/
 
 ## Specific Files
-buildTest.py
+## buildTest.py
 
 ## Ignore MATLAB files
 *.asv
