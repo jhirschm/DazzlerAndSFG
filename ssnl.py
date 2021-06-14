@@ -93,18 +93,20 @@ class SSNL:
         
         results in squarish pulse '''
         u     = UNITS() 
-        dt0   = 330 #fs
+        dt0   = 246 #330 #fs
         tay12 = gdd(newfwhm, dt0)*10**-6
-        tay13 = (tay12/7.8)*sf
+        tay13 = (tay12/8)*sf
            
-        self.lams     = np.array([1030*u.nm,1030*u.nm,515*u.nm])
+        self.lams     = np.array([1024*u.nm,1024*u.nm,512*u.nm])
+            #1030*u.nm,1030*u.nm,515*u.nm])
         self.ks       = (2*np.pi)/self.lams
         self.omegas   = self.c * self.ks
         self.crys     = 'BBO'
-        self.len      = 2*u.mm
+        self.len      = 0.5*u.mm
         self.theta    = 23.29
         self.mixType  = 'SFG'
-        self.taus     = np.array([330*u.fs,330*u.fs,20*u.fs])
+        self.taus     = np.array([246*u.fs,246*u.fs,20*u.fs])
+            #330*u.fs,330*u.fs,20*u.fs])
         self.energies = np.array([25*u.uJ,25*u.uJ,0*u.uJ])
         self.spotRad  = 400*u.um
         self.specPhases = np.array([ 
