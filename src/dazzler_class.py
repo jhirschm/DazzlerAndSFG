@@ -58,7 +58,7 @@ class Dazzler_Pulse_Shaper():
     
     def calculate_amplitude_transfer_function(self, ang_freq_vector, components_return = False):
         '''
-        THis function takes an angular frequency vector and uses the class parameters to 
+        This function takes an angular frequency vector and uses the class parameters to 
         calculate the amplitude transfer function. This ends up being a product of 
         e^-([(w-w0)/delw0]^6) * (1-k*e^-([(w-w0)/delw0]^2))
         '''
